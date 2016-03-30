@@ -7,4 +7,5 @@ authors = ["Alex Pecsi <alex.pecsi@gmail.com>"]
 glium = "0.13.5"
 libc = "0.2.*"
 time = "0.1.*"
-image = "0.7.*"
+filetime = "0.1.*"
+#image = "0.7.*"

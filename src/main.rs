@@ -2,16 +2,15 @@
 extern crate glium;
 extern crate libc;
 extern crate time;
-extern crate image;
+extern crate filetime;
 
+use filetime::FileTime;
 use glium::{DisplayBuild, Surface, VertexBuffer};
 use glium::glutin::WindowBuilder;
 use std::collections::HashMap;
-use std::fs::{File};
+use std::fs::{File, metadata};
 use std::io::{Cursor, Read};
 use std::thread;
-use std::os::unix::raw::time_t;
-use std::os::unix::fs::MetadataExt;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
@@ -36,9 +35,9 @@ struct ShaderProgramSource {
     geometry: Option<String>
 }
 
-fn update_shaders(tx: Sender<ShaderProgramSource>, sources: Vec<(&str, ShaderType)>) {
-    let mut mtimes: HashMap<String, time_t> = HashMap::new();
 
+fn update_shaders(tx: Sender<ShaderProgramSource>, sources: Vec<(&str, ShaderType)>) {
+    let mut mtimes: HashMap<String, u64> = HashMap::new();
 
     loop {
         let mut shader = ShaderProgramSource { vertex: None, fragment: None, geometry: None };
@@ -48,7 +47,10 @@ fn update_shaders(tx: Sender<ShaderProgramSource>, sources: Vec<(&str, ShaderTyp
         for source in sources.iter() {
             match File::open(source.0) {
                 Ok(mut file) => {
-                    let mtime = file.metadata().unwrap().mtime();
+                    //let mtime = file.metadata().unwrap().mtime();
+                    let metadata = metadata(source.0).unwrap();
+                    let mtime = FileTime::from_last_modification_time(&metadata).seconds();
+
 
                     if !mtimes.contains_key(source.0) || *mtimes.get(source.0).unwrap() < mtime {
                         mtimes.insert(source.0.to_string(), mtime);
@@ -176,7 +178,7 @@ uniform samplerXX iChannel0..3;          // input channel. XX = 2D/Cube
         };
 
         // textures
-        let image = image::load(Cursor::new(&include_bytes!("texture1.png")[..]), image::PNG).unwrap().to_rgba();
+//        let image = image::load(Cursor::new(&include_bytes!("texture1.png")[..]), image::PNG).unwrap().to_rgba();
 
         target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
         target.finish().unwrap();
