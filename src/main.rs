@@ -62,25 +62,15 @@ impl Shape {
     }
 }
 
-struct RefScene<'a, T> where T: 'a + Uniforms {
-    pub uniforms: &'a T
-}
-
-impl<'a, T> RefScene<'a, T> where T: 'a + Uniforms {
-    pub fn new(uniforms: &'a T) -> RefScene<T> {
-        RefScene { uniforms: uniforms }
-    }
-}
-
-struct Scene<T> where T: Uniforms {
+struct Scene<'a, T> where T: 'a + Uniforms {
     pub vertex_buffer: VertexBuffer<Vertex>,
     pub indices: NoIndices,
     pub shader_program: Program,
-    pub uniforms: T
+    pub uniforms: &'a T
 }
 
-impl<T> Scene<T> where T: Uniforms {
-    pub fn new(facade: &Facade, vertices: &[Vertex], uniforms: T, vertex_shader: &str, fragment_shader: &str) -> Scene<T> {
+impl<'a, T> Scene<'a, T> where T: 'a + Uniforms {
+    pub fn new(facade: &Facade, vertices: &[Vertex], uniforms: &'a T, vertex_shader: &str, fragment_shader: &str) -> Scene<'a, T> {
         Scene {
             vertex_buffer: VertexBuffer::new(facade, vertices).unwrap(),
             indices: NoIndices(PrimitiveType::TrianglesList),
@@ -112,10 +102,7 @@ fn main() -> () {
         
     };
 
-    let ref_scene = RefScene { uniforms: &uniform };
-
-    let scene = Scene::new(&display, &triangle.vertices, uniform! {
-    }, vertex_shader, fragment_shader);
+    let scene = Scene::new(&display, &triangle.vertices, &uniform, vertex_shader, fragment_shader);
 
     while program_state.shall_continue {
         draw_frame(display.draw(), &scene, &mut program_state);
@@ -129,7 +116,7 @@ fn main() -> () {
 fn draw_frame<T>(mut frame: Frame, scene: &Scene<T>, state: &mut ProgramState) -> () where T: Uniforms {
     frame.clear_color(0.0, 0.0, 0.0, 1.0);
 
-    frame.draw(&scene.vertex_buffer, &scene.indices, &scene.shader_program, &scene.uniforms, &Default::default()).unwrap();
+    frame.draw(&scene.vertex_buffer, &scene.indices, &scene.shader_program, scene.uniforms, &Default::default()).unwrap();
     frame.finish().unwrap();
 }
 
