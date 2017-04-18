@@ -2,8 +2,9 @@
 
 out vec4 color;
 
-uniform float startTime;
+uniform float counter;
+uniform uint milliseconds;
 
 void main() {
-    color = vec4(1.0, 0.0, 0.0, 1.0);
+  color = vec4(sin(milliseconds), cos(milliseconds), sin(milliseconds), 1.0);
 }
