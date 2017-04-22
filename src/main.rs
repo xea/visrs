@@ -6,7 +6,7 @@ use glium::backend::Facade;
 use glium::index::{ NoIndices, PrimitiveType };
 use glium::glutin::{WindowBuilder};
 use glium::glutin::{Event, VirtualKeyCode};
-use glium::uniforms::{Uniforms, EmptyUniforms, UniformValue, UniformsStorage};
+use glium::uniforms::{EmptyUniforms, UniformValue, UniformsStorage};
 
 use std::time::{Duration, Instant};
 
@@ -88,7 +88,37 @@ impl Shape {
             Vertex::new(-0.0f32.sin(), -0.0f32.cos(), 0.0),
         ]}
     }
+
+    pub fn cube() -> Shape {
+        Shape { primitive_type: PrimitiveType::TrianglesList, vertices: vec![
+            // Front face
+            Vertex::new(-0.5, -0.5, -0.5),
+            Vertex::new( 0.5, -0.5, -0.5),
+            Vertex::new( 0.5,  0.5, -0.5),
+
+            Vertex::new(-0.5, -0.5,  0.5),
+            Vertex::new( 0.5,  0.5,  0.5),
+            Vertex::new(-0.5,  0.5,  0.5),
+
+            /*
+            // Back face
+            Vertex::new(-0.5, -0.5,  0.5),
+            Vertex::new( 0.5, -0.5,  0.5),
+            Vertex::new( 0.5,  0.5,  0.5),
+
+            Vertex::new(-0.5, -0.5,  0.5),
+            Vertex::new( 0.5,  0.5,  0.5),
+            Vertex::new(-0.5,  0.5,  0.5),
+            */
+        ]}
+    }
 }
+
+pub trait ShaderSource {
+    fn vertex_shader(&self) -> String;
+    fn fragment_shader(&self) -> String;
+}
+
 
 struct Scene {
     pub vertex_buffer: VertexBuffer<Vertex>,
@@ -112,12 +142,13 @@ fn main() -> () {
     let display = WindowBuilder::new()
         .with_dimensions(settings.width, settings.height)
         .with_title(settings.title)
+        .with_vsync()
         .build_glium()
         .unwrap();
 
     implement_vertex!(Vertex, position);
 
-    let triangle = Shape::five_point_star();
+    let triangle = Shape::triangle();
 
     let mut program_state = ProgramState::default();
 
@@ -135,7 +166,7 @@ fn main() -> () {
             handle_event(&event, &mut program_state);
         }
 
-        limit_rate(&program_state.frame_start);
+        //limit_rate(&program_state.frame_start);
     }
 }
 
@@ -149,7 +180,14 @@ fn draw_frame(mut frame: Frame, scene: &Scene, state: &mut ProgramState) -> () {
 
     frame.draw(&scene.vertex_buffer, &scene.indices, &scene.shader_program, &uniform! {
         counter: state.counter,
-        milliseconds: state.elapsed_millis()
+        milliseconds: state.elapsed_millis(),
+        matrix: [
+           // [ 1.0, 0.0, 0.0, 0.0 ],
+            [ state.counter.sin(), 0.0, 0.0, 0.0 ],
+            [ 0.0, 1.0, 0.0, 0.0 ],
+            [ 0.0, 0.0, 1.0, 0.0 ],
+            [ 0.0, 0.0, 0.0, 1.0f32 ],
+        ]
 //        milliseconds: state.elapsed_millis()
     }, &Default::default()).unwrap();
     frame.finish().unwrap();
@@ -170,7 +208,7 @@ fn handle_event(event: &Event, state: &mut ProgramState) -> () {
 fn limit_rate(frame_start: &Instant) -> () {
     let frame_ms = frame_start.elapsed().subsec_nanos() / 1_000_000;
 
-    const FRAME_MS_LIMIT: u32 = 1000 / 2; // should correspond to about 25 frames/sec
+    const FRAME_MS_LIMIT: u32 = 1000 / 60; // should correspond to about 25 frames/sec
 
     if frame_ms < FRAME_MS_LIMIT {
         let sleep_time = FRAME_MS_LIMIT - frame_ms;
